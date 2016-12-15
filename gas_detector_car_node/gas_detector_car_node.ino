@@ -12,6 +12,7 @@ long duration, distance;
 long gas_level, old_gas_level;
 
 void (*actualState)();
+void (*oldState)();
 
 void moveFront() {
   digitalWrite(motor1[0], HIGH);
@@ -27,6 +28,22 @@ void moveBack() {
 
   digitalWrite(motor2[0], LOW);
   digitalWrite(motor2[1], HIGH);
+}
+
+void moveLeft() {
+  digitalWrite(motor1[0], HIGH);
+  digitalWrite(motor1[1], LOW);
+
+  digitalWrite(motor2[0], LOW);
+  digitalWrite(motor2[1], HIGH);
+}
+
+void stopCar() {
+  digitalWrite(motor1[0], LOW);
+  digitalWrite(motor1[1], LOW);
+
+  digitalWrite(motor2[0], LOW);
+  digitalWrite(motor2[1], LOW);
 }
 
 void setup() {
@@ -64,17 +81,44 @@ void loop() {
 
   old_gas_level = gas_level;
   gas_level = analogRead(pin_a0);
+  oldState = actualState;
 
-  if (old_gas_level > gas_level) {
-    if (actualState == &moveFront) {
+  if (old_gas_level > gas_level + 5) {
+    if (actualState == &moveFront && oldState == moveFront) {
       actualState = &moveBack;
-    } else {
+    } else if (actualState == moveFront && oldState == moveBack) {
+      actualState = &moveLeft;
+      actualState();
+      delay(2000);
+      actualState == &stopCar;
+    } else if(actualState == moveBack && oldState == moveBack) {
+      actualState = &moveFront;
+    } else if (actualState == moveBack && oldState == moveFront) {
+      actualState = &moveLeft;
+      actualState();
+      delay(2000);
+      actualState == &stopCar;
+    } else if (actualState == stopCar) {
       actualState = &moveFront;
     }
     actualState();
   } else {
+    if (actualState == stopCar) {
+      actualState = &moveFront;
+    }
     actualState();
   }
+  if (distance < 5.0) {
+    moveLeft();
+    delay(2000);
+    actualState = &stopCar;
+    actualState();
+  }
+
+  Serial.print("Gas: ");
+  Serial.print( gas_level);
+  Serial.print(" Old Gas: ");
+  Serial.println(old_gas_level);
 
   delay(2000);
 
